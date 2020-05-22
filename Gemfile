@@ -15,6 +15,7 @@ gem 'stockfish'
 gem 'rubocop'
 gem 'pgn'
 gem 'ruby_nn'
+gem 'chess_validator'
 gem 'activerecord-import'
 
 group :development, :test do
