@@ -1,5 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Position, type: :model do
-  pending "add some examples to (or delete) #{__FILE__}"
+  it 'can be initialized' do
+    expect(Position.respond_to?(:new)).to be true
+  end
 end

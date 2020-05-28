@@ -1,8 +1,17 @@
-class Abstractions
-  def self.find_abstractions(position)
-    # look at current position --> return score for each next move
-    # look at stats on position
-    # look at related (child positions) and their stats (min max)
-    # pull abstractions out of position and run them through the nn
+class Abstraction
+  class << self
+    def find_abstractions(position)
+      board = ChessValidator::BoardLogic.build_board(position)
+      pieces = board.values
+      turn = position.split[1]
+      # control space around each opps king
+      # activity ratio for active player
+      # center control
+      # attack ratio of active
+      # returns array inputs
+      [
+        MaterialAbstraction.find_abstraction(pieces, turn)
+      ]
+    end
   end
 end
