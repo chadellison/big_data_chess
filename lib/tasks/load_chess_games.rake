@@ -32,7 +32,7 @@ def parse_file(file_number)
   positions = []
   games.each do |game|
     positions += create_positions(game.positions, game.result)
-    all_games << Game.new({moves: games.first.moves.map(&:notation).join(' '), result: game.result})
+    all_games << Game.new({moves: game.moves.map(&:notation).join(' '), result: game.result})
   end
   Position.import(positions)
   Game.import(all_games)
