@@ -28,7 +28,6 @@ ActiveRecord::Schema.define(version: 2020_05_16_202837) do
     t.integer "draws", default: 0
     t.integer "black_wins", default: 0
     t.integer "white_wins", default: 0
-    t.integer "piece_size"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.index ["signature"], name: "index_positions_on_signature"

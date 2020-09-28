@@ -1,14 +1,14 @@
 class Game < ApplicationRecord
   def play_self(fen_notation)
-    game_result = ChessValidator::GameLogic.find_game_result(fen_notation)
+    game_result = ChessValidator::Engine.result(fen_notation)
 
     if game_result
       puts 'the game is over...' + game_result
       # update game object
       # update positions
     else
-      pieces_with_moves = ChessValidator::MoveLogic.find_next_moves(fen_notation)
-      new_fen_notation = ChessValidator::MoveLogic.make_random_move(fen_notation, pieces_with_moves)
+      pieces_with_moves = ChessValidator::Engine.find_next_moves(fen_notation)
+      new_fen_notation = ChessValidator::Engine.make_random_move(fen_notation, pieces_with_moves)
       puts new_fen_notation
       play_self(new_fen_notation)
     end
