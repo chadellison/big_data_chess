@@ -43,7 +43,8 @@ end
 def create_positions(game_positions, result)
   new_positions = []
   game_positions.each do |position|
-    signature = position.to_fen.to_s
+    fen = position.to_fen
+    signature = fen.board_string + fen.active
 
     current_position = Position.find_by(signature: signature)
 
