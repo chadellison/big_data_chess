@@ -41,33 +41,10 @@ def parse_file(file_number)
 end
 
 def create_positions(game_positions, result)
-  new_positions = []
-  game_positions.each do |position|
-    fen = position.to_fen
-    signature = fen.board_string + fen.active
-
-    current_position = Position.find_by(signature: signature)
-
-    if current_position.present?
-      current_position = handle_result(current_position, result)
-      current_position.save
-    else
-      current_position = Position.new({signature: signature})
-      current_position = handle_result(current_position, result)
-      new_positions.push(current_position)
-    end
+  game_positions.map do |position|
+    current_position = Position.create_position(fen_notation)
+    current_position.update_results(result)
+    CacheService.set(current_position.signature, current_position)
+    current_position
   end
-  new_positions
-end
-
-def handle_result(position, result)
-  case result
-  when '1/2-1/2'
-    position.draws += 1
-  when '1-0'
-    position.white_wins += 1
-  when '0-1'
-    position.black_wins += 1
-  end
-  position
 end
