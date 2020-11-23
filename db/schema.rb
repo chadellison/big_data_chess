@@ -10,27 +10,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_05_16_202837) do
+ActiveRecord::Schema.define(version: 0) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
-
-  create_table "games", force: :cascade do |t|
-    t.text "moves"
-    t.string "result"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-    t.index ["moves"], name: "index_games_on_moves"
-  end
-
-  create_table "positions", force: :cascade do |t|
-    t.string "signature"
-    t.integer "draws", default: 0
-    t.integer "black_wins", default: 0
-    t.integer "white_wins", default: 0
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-    t.index ["signature"], name: "index_positions_on_signature"
-  end
 
 end

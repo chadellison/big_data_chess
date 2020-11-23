@@ -1,6 +1,17 @@
-class Game < ApplicationRecord
+class Game
   def neural_network
-    @neural_network ||= RubyNN::NeuralNetwork.new([16, 20, 1])
+    if @neural_network.present?
+      @neural_network
+    else
+      @neural_network = RubyNN::NeuralNetwork.new([16, 20, 1])
+      file_path = Rails.root + 'weights.json'
+      begin
+        json_weights = File.read(file_path)
+        @neural_network.set_weights(JSON.parse(json_weights))
+      rescue
+        puts "FILE '#{file_path}' DOES NOT EXIST: #{e}"
+      end
+    end
   end
 
   def play_self(fen_notation)
@@ -16,6 +27,17 @@ class Game < ApplicationRecord
     end
   end
 
+  def weight_moves(fen_notation)
+    pieces_with_moves = ChessValidator::Engine.find_next_moves(fen_notation)
+    weighted_moves = {}
+
+    pieces_with_moves.each do |piece|
+      piece.valid_moves.each do |move|
+        # weighted_moves[move] = ...
+      end
+    end
+  end
+
   def position_value(fen_notation)
     signature = fen_notation.split.first
     position = Position.find_position(signature)
@@ -23,38 +45,67 @@ class Game < ApplicationRecord
     if position.present?
       calculate_ratio(position, signature[-1])
     else
-      calculate_position_value(signature)
+      inputs = extract_inputs(signature)
+      neural_network.calculate_prediction(inputs)
     end
   end
 
-  def calculate_position_value(signature)
-    inputs = [
-      # general activity movecount of active color / total move count
+  def extract_inputs(signature)
+    inputs = CacheService.hget('inputs', signature)
 
-      # historical wins, losses, draws with ... #=> number of moves for each piece (string for each piece with its move count -- captured pieces will be absent) + turn
-      # historical wins, losses, draws with ... #=> pinned pieces (string for each piece that is pinned -- captured pieces will be absent) + turn
+    if inputs.present?
+      inputs
+    else
+      fen_notation = signature + ' 0 1'
+      pieces_with_moves = ChessValidator::Engine.find_next_moves(fen_notation).sort_by(&:piece_type)
 
-      # historical wins, losses, draws with ... #=> all threatened pieces who are undefended
+      turn = signature.split[1]
+      inputs = create_abstractions(pieces_with_moves, fen_notation).map do |abstraction|
+        calculate_ratio(abstraction, turn)
+      end
 
-      # historical wins, losses, draws with ... #=> next_forks (diagonals, files, columns) (string for each piece that is pinned -- captured pieces will be absent) + turn
+      CacheService.hset('inputs', signature, inputs)
+      inputs
+    end
+  end
 
-      # can capture without recatpure...
+  def create_abstractions(pieces, fen_notation)
+    abstractions = CacheService.hget('abstractions', fen_notation)
 
-      # all pieces involved in a threat
+    if abstractions.present?
+      abstractions.map do |abstraction|
+        CacheService.hget(abstraction['type'], abstraction['signature'])
+      end
+    else
+      all_pieces = ChessValidator::Engine.pieces(fen_notation).sort_by(&:piece_type)
 
-      # historical wins, losses, draws with ... #=> threatened pieces who are defended?????
-      # historical wins, losses, draws with ...
-      # historical wins, losses, draws with ...
-      # historical wins, losses, draws with ...
-    ].map { |abstraction| calculate_ratio(abstraction, signature[-1]) }
+      pieces.each do |piece|
+        piece.targets.each do |target|
+          fen_string = ChessValidator::Engine.move(piece, target.position, fen_notation)
+          new_pieces = ChessValidator::Engine.find_next_moves(fen_notation).sort_by(&:piece_type)
+          target.defenders = new_pieces.select { |defender| defender.valid_moves.include?(target.position) }
+        end
+      end
 
-    neural_network.calculate_prediction(inputs)
+      abstractions = [
+        Activity.create_abstraction(pieces),
+        Pin.create_abstraction(pieces),
+        Center.create_abstraction(pieces),
+        CenterCount.create_abstraction(pieces),
+        Material.create_abstraction(all_pieces),
+        Attack.create_abstraction(pieces),
+        # pawn structure
+        # king threat
+      ]
+      CacheService.hset('abstractions', fen_notation, abstractions)
+      abstractions
+    end
   end
 
   def calculate_ratio(abstraction, turn)
-    draws = abstraction.draws
-    wins = turn == 'w' ? abstraction.white_wins : abstraction.black_wins
-    losses = turn == 'w' ? abstraction.black_wins : abstraction.white_wins
+    draws = abstraction['draws']
+    wins = turn == 'w' ? abstraction['white_wins'] : abstraction['black_wins']
+    losses = turn == 'w' ? abstraction['black_wins'] : abstraction['white_wins']
 
     draw_points = draws.present? ? draws / 2.0 : 0
     total = wins + losses + draws

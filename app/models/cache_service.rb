@@ -1,12 +1,16 @@
 class CacheService
-  def self.get(key)
-    json = REDIS.get(key)
+  def self.hget(type, key)
+    json = REDIS.hget(type, key)
     if json.present?
       JSON.parse(json)
     end
   end
 
-  def self.set(key, value)
-    REDIS.set(key, value.to_json)
+  def self.hset(type, key, value)
+    REDIS.hset(type, key, value.to_json)
+  end
+
+  def self.flushall
+    REDIS.flushall
   end
 end

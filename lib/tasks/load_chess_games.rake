@@ -30,21 +30,25 @@ def parse_file(file_number)
   start_time = Time.now
   all_games = []
   positions = []
-  games.each do |game|
-    positions += create_positions(game.positions, game.result)
-    all_games << Game.new({moves: game.moves.map(&:notation).join(' '), result: game.result})
-  end
-  Position.import(positions)
-  Game.import(all_games)
+  games.each { |game| create_positions(game.positions, game.result) }
   end_time = Time.now
+
   puts "loaded #{games.size} GAMES IN #{end_time - start_time} SECONDS"
 end
 
 def create_positions(game_positions, result)
-  game_positions.map do |position|
-    current_position = Position.create_position(fen_notation)
-    current_position.update_results(result)
-    CacheService.set(current_position.signature, current_position)
-    current_position
+  game = Game.new
+  game_positions.each do |position|
+    current_position = Position.create_position(position)
+    ResultHelper.update_results(current_position, result)
+    CacheService.hset('position', current_position['signature'], current_position)
+    fen = position.to_fen
+    pieces_with_moves = ChessValidator::Engine.find_next_moves(fen.to_s).sort_by(&:piece_type)
+    abstractions = game.create_abstractions(pieces_with_moves, fen.to_s)
+
+    abstractions.each do |abstraction|
+      ResultHelper.update_results(abstraction, result)
+      CacheService.hset(abstraction['type'], abstraction['signature'], abstraction)
+    end
   end
 end

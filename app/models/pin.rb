@@ -1,18 +1,18 @@
-class Pin < ApplicationRecord
-  def create_abstraction(pieces)
+class Pin
+  def self.create_abstraction(pieces)
     pinners = ['r', 'b', 'q']
-    pieces.map do |piece|
+    signature = ''
+    pieces.each do |piece|
       if pinners.include?(piece.piece_type.downcase)
-        moves = ChessValidator::MoveLogic.moves_for_piece(piece)
-        pinned = find_pinned(pieces, moves)
-        pinned.present? ? piece.piece_type + pinned.join : ''
-      else
-        ''
+        pinned = find_pinned(pieces, piece.move_potential)
+        signature += "#{piece.piece_type}-#{pinned.join}" if pinned.present?
       end
-    end.join
+    end
+
+    AbstractionHelper.retrieve_abstraction('pin', signature.downcase)
   end
 
-  def find_pinned(pieces, moves)
+  def self.find_pinned(pieces, moves)
     pieces.map do |piece|
       if moves.include?(piece.position)
         piece.piece_type
